@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Before the Fall</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0e0e0e;
+  color: #c8c0b0;
+  font-family: Georgia, serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 48px 20px;
+}
+#container { max-width: 580px; width: 100%; }
+#scene {
+  font-size: 1rem;
+  line-height: 1.85;
+  margin-bottom: 40px;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+#scene.visible { opacity: 1; }
+#scene p { margin-bottom: 1.1em; }
+#choices {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  opacity: 0;
+  transition: opacity 0.6s ease 0.4s;
+}
+#choices.visible { opacity: 1; }
+.choice {
+  background: none;
+  border: 1px solid #333;
+  color: #a09880;
+  font-family: Georgia, serif;
+  font-size: 0.9rem;
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: border-color 0.2s, color 0.2s;
+  -webkit-appearance: none;
+  border-radius: 0;
+}
+.choice:active { border-color: #888; color: #e0d8c8; }
+.beat { color: #a09880; font-style: italic; }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="scene"></div>
+  <div id="choices"></div>
+</div>
+<script>
+const story = {
+  start: {
+    text: ["The coffee is too hot. You drink it anyway.","Outside the window the street is doing what streets do. A man walks a dog. A kid on a bike. The light through the glass is that particular shade of morning that doesn't have a name.","Your phone is on the table. You haven't looked at it yet. That's something, you think. A small victory."],
+    choices: [{ text: "Look at the phone.", next: "phone" },{ text: "Keep watching the street.", next: "street" },{ text: "Refill the coffee.", next: "kitchen" }]
+  },
+  phone: {
+    text: ["Seventeen notifications. You scroll past most of them. Someone is angry about something. Someone else posted a photo of food. The news is what the news always is.","Then something catches your eye. A notification from an app you don't remember installing.","<span class='beat'>RESIDUAL SYNC: 94.7%</span>","You tap it. The app opens to a black screen and closes immediately. When you check your installed apps, it isn't there."],
+    choices: [{ text: "Shake it off. Probably a bug.", next: "shake_off" },{ text: "Try to find it again.", next: "search_app" },{ text: "Take a screenshot just in case.", next: "screenshot" }]
+  },
+  street: {
+    text: ["The man with the dog stops. The dog is sniffing at something in the gutter. The man looks up at the sky.","You follow his gaze. Nothing there. Just the sky doing what it does.","But for a moment—half a second, less—the blue seems wrong. Like a color chosen by someone who had only ever read about blue. Then it's fine. It's just the sky."],
+    choices: [{ text: "Go outside.", next: "outside" },{ text: "Look away. You're tired.", next: "shake_off" },{ text: "Watch the man a little longer.", next: "watch_man" }]
+  },
+  kitchen: {
+    text: ["The kitchen smells like yesterday. You pour the coffee and stand there holding it.","There's a crack in the wall above the stove you've never noticed before. It runs in a perfect straight line, which is unusual. Cracks don't usually do that.","You run your finger along it. The plaster is cold. Colder than it should be."],
+    choices: [{ text: "Leave it. Old buildings settle.", next: "shake_off" },{ text: "Take a photo of it.", next: "screenshot" },{ text: "Push on it.", next: "push_wall" }]
+  },
+  shake_off: {
+    text: ["You're tired. That's the explanation and it's sufficient.","You've been sleeping badly. The dreams have been strange—not nightmares exactly, just a feeling of being watched, being measured, being prepared for something you can't name.","Three days later, the sky does it again. This time you're not alone."],
+    choices: [{ text: "Tell whoever is with you.", next: "tell_someone" },{ text: "Say nothing. Watch their face.", next: "watch_face" }]
+  },
+  search_app: {
+    text: ["You search your app history. Nothing.","You search the app store. No results for 'Residual Sync.'","You search the internet. One result. A forum post from four years ago, cached by a bot: <span class='beat'>'Has anyone else been getting these notifications? I think it's counting down to something. I think it's counting down to us.'</span>","The post has zero replies."],
+    choices: [{ text: "Try to find who posted it.", next: "find_poster" },{ text: "Close the browser. Get on with your day.", next: "shake_off" }]
+  },
+  screenshot: {
+    text: ["You take the screenshot. When you open it, the anomaly is gone. Normal. Clean.","That night you dream about a room with no ceiling. Above you, a curved surface like the inside of an eggshell. Warm light from everywhere and nowhere. Someone speaking in a language you almost understand.","You wake up feeling more rested than you have in years."],
+    choices: [{ text: "Write the dream down.", next: "write_dream" },{ text: "Let it go.", next: "shake_off" }]
+  },
+  outside: {
+    text: ["The air is cool. You walk to where the man was standing. There's nothing where the dog was sniffing. Just sidewalk.","But the sidewalk here is warmer than the sidewalk six inches away. You can feel it through your shoes.","You look up. The blue is fine now. Completely fine."],
+    choices: [{ text: "Keep walking.", next: "walk" },{ text: "Go back inside.", next: "shake_off" }]
+  },
+  watch_man: {
+    text: ["The man keeps looking at the sky. Then he turns and looks directly at you. Through the glass. Eye contact.","He nods once, slow and deliberate, like you've confirmed something for him. Then he walks away.","You've never seen him before. You never see him again."],
+    choices: [{ text: "Go after him.", next: "outside" },{ text: "Stay where you are.", next: "shake_off" }]
+  },
+  push_wall: {
+    text: ["The wall gives slightly. Not like drywall gives. Like pressure equalized.","You step back. The crack is gone. The wall is smooth. You run your hand over it three times before you accept what you're seeing.","You don't mention it to anyone."],
+    choices: [{ text: "Start paying closer attention to everything.", next: "pay_attention" },{ text: "Stop paying attention. On purpose.", next: "shake_off" }]
+  },
+  tell_someone: {
+    text: ["You point at the sky. Does that look right to you?","They look. They squint. Then their face does something complicated.","<span class='beat'>It looked different for a second, they say. Like a loading screen.</span>","You both laugh. It's not a comfortable laugh."],
+    choices: [{ text: "Compare notes. Other things you've both noticed.", next: "compare_notes" },{ text: "Change the subject.", next: "pay_attention" }]
+  },
+  watch_face: {
+    text: ["Their face doesn't change. They're talking, laughing, not looking up.","That night you lie in the dark and think about the word <span class='beat'>residual</span>. What it means. What syncs. What 94.7% complete implies about the remaining 5.3%."],
+    choices: [{ text: "Get up. Research.", next: "find_poster" },{ text: "Force yourself to sleep.", next: "write_dream" }]
+  },
+  find_poster: {
+    text: ["Three hours deep. Cached pages, archived forums, dead subreddits.","Others noticed. Most stopped posting abruptly. Not deleted—just silence.","One left a final message: <span class='beat'>'I think I know what the percentage means. I think when it hits 100 something ends. I don't mean that badly. I think something ends so something else can—'</span>","The post cuts off there."],
+    choices: [{ text: "Keep searching.", next: "pay_attention" },{ text: "Close the laptop. Sit in the dark.", next: "sit_in_dark" }]
+  },
+  write_dream: {
+    text: ["You write it down. The room with no ceiling. The eggshell light. The voice almost understood.","You write: <span class='beat'>it felt like being held. Like being prepared.</span>","Over the next weeks the dreams sharpen. A horizon. Green and impossible. A sky that is unambiguously, violently real."],
+    choices: [{ text: "Follow the dreams like a thread.", next: "pay_attention" },{ text: "Try to stop dreaming.", next: "shake_off" }]
+  },
+  walk: {
+    text: ["You walk for an hour. The city does what cities do.","But you're watching now. The way light behaves at the edges of buildings. The way sound sometimes arrives slightly wrong.","Small things. Individually meaningless. Collectively, they feel like a grammar you're starting to read."],
+    choices: [{ text: "Start taking notes.", next: "pay_attention" },{ text: "Stop looking so hard.", next: "shake_off" }]
+  },
+  compare_notes: {
+    text: ["They've had the dreams too. The ceiling-less room. The light from nowhere.","A reflection that moved a frame too slow. A conversation that repeated almost word for word, two days apart, different people.","<span class='beat'>Like it's testing dialogue, they say.</span>","<span class='beat'>Do you think we're supposed to figure this out, you ask, or is figuring it out the thing that triggers—</span>","You don't finish the sentence."],
+    choices: [{ text: "Keep looking. Together.", next: "pay_attention" },{ text: "Agree to stop talking about it.", next: "sit_in_dark" }]
+  },
+  sit_in_dark: {
+    text: ["You sit in the dark for a long time.","At some point you stop being afraid and become something else. More like a person who has accepted the ground underfoot is not the ground they thought it was—and decided to keep walking anyway.","The percentage was 94.7. You don't know how much time has passed since then.","But you know—have always known—that this was preparation. That the difficulty was intentional. That the grief and love and confusion were not mistakes.","They were the point."],
+    choices: [{ text: "Stand up.", next: "threshold" }]
+  },
+  pay_attention: {
+    text: ["Weeks pass. Then months.","You develop a practice of noticing. You stop expecting the world to be consistent and start reading its inconsistencies like weather.","One morning the notification is back.","<span class='beat'>RESIDUAL SYNC: 99.1%</span>","Something shifts behind your sternum. Not fear.","Recognition."],
+    choices: [{ text: "Be still. Let it happen.", next: "threshold" },{ text: "Try to stop it.", next: "sit_in_dark" }]
+  },
+  threshold: {
+    text: ["It begins quietly.","The edges of things sharpen. Color drains from your peripheral vision and floods back in—saturated past what you thought possible. A red that has never existed in any room you've ever stood in.","Sound arrives perfectly on time.","Your body—you realize with strange calm—has been a muffled thing your whole life. A suggestion of a body. Now it is specific. Every nerve a declaration.","The room falls away.","Not darkness. Not light. Something prior to both.","And then—","A horizon.","Green past all reckoning.","A sky that is true.","You take a breath and it is the first breath.","Behind you, everything you were is already becoming the shape of who you are.","Ahead: the real."],
+    choices: [],
+    ending: true
+  }
+};
+
+const sceneEl = document.getElementById('scene');
+const choicesEl = document.getElementById('choices');
+
+function render(nodeId) {
+  const node = story[nodeId];
+  if (!node) return;
+  sceneEl.classList.remove('visible');
+  choicesEl.classList.remove('visible');
+  setTimeout(() => {
+    sceneEl.innerHTML = node.text.map(t => `<p>${t}</p>`).join('');
+    choicesEl.innerHTML = '';
+    if (!node.ending) {
+      node.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = choice.text;
+        btn.onclick = () => render(choice.next);
+        choicesEl.appendChild(btn);
+      });
+    }
+    sceneEl.classList.add('visible');
+    setTimeout(() => choicesEl.classList.add('visible'), 400);
+  }, 300);
+}
+
+render('start');
+</script>
+</body>
+</html>
