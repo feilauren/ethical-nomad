@@ -43,8 +43,8 @@ export function FlightSearch({ countryName, defaultCurr = "CAD" }) {
     search({
       flyFrom,
       flyTo,
-      dateFrom: toTequilaDate(dateFrom),
-      dateTo:   toTequilaDate(dateTo),
+      dateFrom: toApiDate(dateFrom),
+      dateTo:   toApiDate(dateTo),
       curr: defaultCurr,
     });
   }, [airports, dateFrom, dateTo, flyTo, defaultCurr, search]);
@@ -112,7 +112,7 @@ export function FlightSearch({ countryName, defaultCurr = "CAD" }) {
             <FlightCard key={f.id} flight={f} />
           ))}
           <p style={styles.disclaimer}>
-            Prices from Kiwi.com · Click to book · Fares may vary
+            Prices from Skyscanner · Click to book · Fares may vary
           </p>
         </div>
       )}
@@ -187,8 +187,8 @@ function toInputDate(date) {
   return date.toISOString().split("T")[0];
 }
 
-/** "2025-04-15" → "15/04/2025" (Tequila format) */
-function toTequilaDate(isoDate) {
+/** "2025-04-15" → "15/04/2025" (DD/MM/YYYY) */
+function toApiDate(isoDate) {
   const [y, m, d] = isoDate.split("-");
   return `${d}/${m}/${y}`;
 }

@@ -1,15 +1,14 @@
 /**
- * Maps country names (as used in the dashboard) to Kiwi Tequila "fly_to" values.
+ * Maps country names (as used in the dashboard) to Sky-Scrapper "fly_to" values.
  *
- * Tequila accepts:
+ * Accepted formats:
  *   - "country:XX"  — ISO 3166-1 alpha-2 code, searches all airports in that country
- *   - "IATA"        — specific airport code
- *   - "city:slug"   — Kiwi city slug
+ *   - "IATA"        — specific airport code, e.g. "BKK"
  *
  * Using "country:XX" gives the broadest match for nomad-style searches.
  */
 
-export const COUNTRY_TO_TEQUILA = {
+export const COUNTRY_TO_FLY_TO = {
   // Southeast Asia
   Thailand: "country:TH",
   Vietnam: "country:VN",
@@ -135,9 +134,8 @@ export const COUNTRY_TO_TEQUILA = {
 };
 
 /**
- * Returns the Tequila fly_to value for a given country name.
- * Falls back to a country: search using a best-guess ISO code if not in the map.
+ * Returns the fly_to value for a given country name.
  */
 export function getFlightDestination(countryName) {
-  return COUNTRY_TO_TEQUILA[countryName] ?? null;
+  return COUNTRY_TO_FLY_TO[countryName] ?? null;
 }

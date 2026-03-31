@@ -3,7 +3,7 @@ import { useState, useCallback, useRef } from "react";
 const FLIGHTS_API = "/api/flights";
 
 /**
- * Formats a JS Date to DD/MM/YYYY for Tequila API.
+ * Formats a JS Date to DD/MM/YYYY for the flights API.
  */
 function formatDate(date) {
   const d = String(date.getDate()).padStart(2, "0");

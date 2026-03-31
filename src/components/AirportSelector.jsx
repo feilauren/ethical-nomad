@@ -131,7 +131,7 @@ export function AirportSelector({ value, onChange }) {
 }
 
 /**
- * Returns a comma-separated IATA string for the Tequila fly_from param.
+ * Returns a comma-separated IATA string for the fly_from param.
  */
 export function buildFlyFrom(selectorValue) {
   const { homeKey, enabled } = selectorValue;

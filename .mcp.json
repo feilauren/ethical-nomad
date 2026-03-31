@@ -1,8 +1,3 @@
 {
-  "mcpServers": {
-    "kiwi-flights": {
-      "type": "http",
-      "url": "https://mcp.kiwi.com"
-    }
-  }
+  "mcpServers": {}
 }
