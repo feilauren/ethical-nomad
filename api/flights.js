@@ -16,9 +16,19 @@
 const RAPIDAPI_HOST = "sky-scrapper.p.rapidapi.com";
 const RAPIDAPI_BASE = `https://${RAPIDAPI_HOST}`;
 
-// Module-level cache for airport/entity lookups.
-// Survives across requests within the same Vercel function instance.
-const entityCache = new Map();
+// Pre-seeded entity IDs from scripts/seed-airports.js — zero API calls for lookups.
+// Falls back to dynamic lookup for any airport not in this map.
+let seededEntities = {};
+try {
+  const { createRequire } = await import("module");
+  const require = createRequire(import.meta.url);
+  seededEntities = require("./airport-entities.json");
+} catch {
+  // File doesn't exist yet — run: RAPIDAPI_KEY=<key> node scripts/seed-airports.js
+}
+
+// Module-level cache for any airports not covered by the seeded file.
+const entityCache = new Map(Object.entries(seededEntities));
 
 async function lookupEntity(query, isCountry, apiKey) {
   const cacheKey = query.toLowerCase();
