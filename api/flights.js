@@ -7,14 +7,27 @@
  * Query params accepted:
  *   fly_from   - comma-separated IATA codes, e.g. "DUS,CGN,AMS"
  *   fly_to     - "country:XX" (ISO-2) or plain IATA code, e.g. "BKK"
- *   date_from  - DD/MM/YYYY  (start of departure window; Sky-Scrapper uses first date)
- *   date_to    - DD/MM/YYYY  (end of departure window — used for multi-date parallel search)
+ *   date_from  - DD/MM/YYYY  (start of departure window)
+ *   date_to    - DD/MM/YYYY  (end of departure window)
  *   curr       - ISO 4217 currency code, default "CAD"
  *   limit      - max results to return, default 3
  */
 
 const RAPIDAPI_HOST = "sky-scrapper.p.rapidapi.com";
 const RAPIDAPI_BASE = `https://${RAPIDAPI_HOST}`;
+
+// Allowlist of accepted currencies
+const VALID_CURRENCIES = new Set([
+  "CAD","USD","EUR","GBP","AUD","CHF","SEK","NOK","DKK","SGD",
+  "HKD","JPY","KRW","THB","MYR","IDR","PHP","VND","INR","AED",
+  "ZAR","BRL","MXN","NZD","CZK","PLN","HUF","RON","BGN","HRK",
+]);
+
+// Validation patterns
+const IATA_RE = /^[A-Z]{3}$/;
+const ISO2_RE = /^[A-Z]{2}$/;
+const DATE_RE = /^\d{2}\/\d{2}\/\d{4}$/;
+const DISPLAY_CODE_RE = /^[A-Z]{3}$/;
 
 // Pre-seeded entity IDs from scripts/seed-airports.js — zero API calls for lookups.
 // Falls back to dynamic lookup for any airport not in this map.
@@ -43,16 +56,15 @@ async function lookupEntity(query, isCountry, apiKey) {
   });
 
   if (!res.ok) {
-    throw new Error(`Airport lookup failed for "${query}": HTTP ${res.status}`);
+    throw new Error("Airport lookup unavailable");
   }
 
   const data = await res.json();
-  const results = (data.data || []);
+  const results = data.data || [];
   if (!results.length) {
-    throw new Error(`No entity found for: ${query}`);
+    throw new Error("Airport not found");
   }
 
-  // For country searches prefer a COUNTRY entity; fall back to first result.
   const entity = isCountry
     ? (results.find((r) => r.navigation?.entityType === "COUNTRY") || results[0])
     : results[0];
@@ -94,8 +106,7 @@ async function searchOneWay(origin, destination, date, currency, apiKey) {
   );
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Flight search failed: HTTP ${res.status} — ${body}`);
+    throw new Error("Flight search unavailable");
   }
 
   return res.json();
@@ -105,13 +116,25 @@ function shapeItinerary(itinerary, currency) {
   const leg = itinerary.legs?.[0];
   if (!leg) return null;
 
+  const originCode = leg.origin?.displayCode ?? "";
+  const destCode = leg.destination?.displayCode ?? "";
+  const rawDate = leg.departure?.slice(0, 10) ?? "";
+
+  // Validate codes and date before building the deep-link
+  const safeOrigin = DISPLAY_CODE_RE.test(originCode) ? originCode : "";
+  const safeDest = DISPLAY_CODE_RE.test(destCode) ? destCode : "";
+  const safeDate = /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+    ? rawDate.replace(/-/g, "")
+    : "";
+
+  const deepLink =
+    safeOrigin && safeDest && safeDate
+      ? `https://www.skyscanner.com/transport/flights/${safeOrigin}/${safeDest}/${safeDate}/?adults=1`
+      : "https://www.skyscanner.com";
+
   const marketing = leg.carriers?.marketing ?? [];
   const airline = marketing[0]?.name ?? "Unknown";
   const airlines = [...new Set(marketing.map((c) => c.name))];
-
-  // Build a Skyscanner deep-link
-  const date = leg.departure?.slice(0, 10).replace(/-/g, "");
-  const deepLink = `https://www.skyscanner.com/transport/flights/${leg.origin?.displayCode}/${leg.destination?.displayCode}/${date}/?adults=1`;
 
   return {
     id: itinerary.id,
@@ -120,12 +143,12 @@ function shapeItinerary(itinerary, currency) {
     airline,
     airlines,
     departure: {
-      airport: leg.origin?.displayCode ?? leg.origin?.id,
+      airport: safeOrigin || leg.origin?.id,
       city: leg.origin?.name,
       time: leg.departure,
     },
     arrival: {
-      airport: leg.destination?.displayCode ?? leg.destination?.id,
+      airport: safeDest || leg.destination?.id,
       city: leg.destination?.name,
       time: leg.arrival,
     },
@@ -151,50 +174,62 @@ export default async function handler(req, res) {
 
   const { fly_from, fly_to, date_from, date_to, curr = "CAD", limit = "3" } = req.query;
 
+  // ── Input validation ────────────────────────────────────────────────────────
+
   if (!fly_from || !fly_to || !date_from || !date_to) {
     return res.status(400).json({
       error: "Missing required params: fly_from, fly_to, date_from, date_to",
     });
   }
 
-  const dateRe = /^\d{2}\/\d{2}\/\d{4}$/;
-  if (!dateRe.test(date_from) || !dateRe.test(date_to)) {
+  // fly_from: 1–5 comma-separated IATA codes
+  const origins = fly_from.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean);
+  if (origins.length === 0 || origins.length > 5 || origins.some((c) => !IATA_RE.test(c))) {
+    return res.status(400).json({ error: "fly_from must be 1–5 valid IATA airport codes" });
+  }
+
+  // fly_to: "country:XX" or plain IATA
+  const isCountry = fly_to.startsWith("country:");
+  const destQuery = isCountry ? fly_to.slice(8).toUpperCase() : fly_to.toUpperCase();
+  if (isCountry ? !ISO2_RE.test(destQuery) : !IATA_RE.test(destQuery)) {
+    return res.status(400).json({ error: "fly_to must be a valid IATA code or country:XX" });
+  }
+
+  // dates
+  if (!DATE_RE.test(date_from) || !DATE_RE.test(date_to)) {
     return res.status(400).json({ error: "Dates must be in DD/MM/YYYY format" });
   }
 
+  // currency
+  const currency = String(curr).toUpperCase();
+  if (!VALID_CURRENCIES.has(currency)) {
+    return res.status(400).json({ error: "Unsupported currency code" });
+  }
+
   const resultLimit = Math.min(Math.max(parseInt(limit, 10) || 3, 1), 10);
-
-  // Parse destination — "country:TH" or plain IATA like "BKK"
-  const isCountry = fly_to.startsWith("country:");
-  const destQuery = isCountry ? fly_to.slice(8) : fly_to; // strip "country:" prefix
-
-  // Parse origins
-  const origins = fly_from.split(",").map((s) => s.trim()).filter(Boolean);
-
   const searchDate = toIsoDate(date_from);
 
+  // ── Search ──────────────────────────────────────────────────────────────────
+
   try {
-    // Resolve all entity IDs in parallel
     const [destEntity, ...originEntities] = await Promise.all([
       lookupEntity(destQuery, isCountry, apiKey),
       ...origins.map((iata) => lookupEntity(iata, false, apiKey)),
     ]);
 
-    // Search flights from each origin in parallel
     const searchResults = await Promise.all(
       originEntities.map((orig) =>
-        searchOneWay(orig, destEntity, searchDate, curr, apiKey).catch((err) => {
+        searchOneWay(orig, destEntity, searchDate, currency, apiKey).catch((err) => {
           console.warn(`Search from ${orig.skyId} failed:`, err.message);
           return null;
         })
       )
     );
 
-    // Flatten, shape, sort by price, dedup by id
     const seen = new Set();
     const flights = searchResults
-      .flatMap((result) => (result?.data?.itineraries ?? []))
-      .map((it) => shapeItinerary(it, curr))
+      .flatMap((result) => result?.data?.itineraries ?? [])
+      .map((it) => shapeItinerary(it, currency))
       .filter(Boolean)
       .filter((f) => {
         if (seen.has(f.id)) return false;
@@ -205,9 +240,9 @@ export default async function handler(req, res) {
       .slice(0, resultLimit);
 
     res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=60");
-    return res.status(200).json({ flights, currency: curr });
+    return res.status(200).json({ flights, currency });
   } catch (err) {
     console.error("Flight proxy error:", err.message);
-    return res.status(500).json({ error: err.message || "Internal server error" });
+    return res.status(500).json({ error: "Unable to complete flight search" });
   }
 }
