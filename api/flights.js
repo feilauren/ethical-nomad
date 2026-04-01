@@ -43,6 +43,16 @@ try {
 // Module-level cache for any airports not covered by the seeded file.
 const entityCache = new Map(Object.entries(seededEntities));
 
+// Maps known home/nearby airports to their ISO-2 country code for Skyscanner market.
+const AIRPORT_COUNTRY = {
+  DUS: "DE", CGN: "DE", FRA: "DE", MUC: "DE", STR: "DE",
+  AMS: "NL",
+  BRU: "BE",
+  LHR: "GB", LGW: "GB", STN: "GB", LTN: "GB", BRS: "GB",
+  BCN: "ES", GRO: "ES", REU: "ES", VLC: "ES",
+  LIS: "PT", OPO: "PT", FAO: "PT",
+};
+
 async function lookupEntity(query, isCountry, apiKey) {
   const cacheKey = query.toLowerCase();
   if (entityCache.has(cacheKey)) return entityCache.get(cacheKey);
@@ -80,7 +90,8 @@ function toIsoDate(ddmmyyyy) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-async function searchOneWay(origin, destination, date, currency, apiKey) {
+async function searchOneWay(origin, destination, date, currency, countryCode, apiKey) {
+  const market = `en-${countryCode.toLowerCase()}`;
   const params = new URLSearchParams({
     originSkyId: origin.skyId,
     destinationSkyId: destination.skyId,
@@ -91,8 +102,8 @@ async function searchOneWay(origin, destination, date, currency, apiKey) {
     adults: "1",
     sortBy: "cheapest",
     currency,
-    market: "en-US",
-    countryCode: "US",
+    market,
+    countryCode,
   });
 
   const res = await fetch(
@@ -208,6 +219,7 @@ export default async function handler(req, res) {
 
   const resultLimit = Math.min(Math.max(parseInt(limit, 10) || 3, 1), 10);
   const searchDate = toIsoDate(date_from);
+  const countryCode = AIRPORT_COUNTRY[origins[0]] ?? "GB";
 
   // ── Search ──────────────────────────────────────────────────────────────────
 
@@ -219,7 +231,7 @@ export default async function handler(req, res) {
 
     const searchResults = await Promise.all(
       originEntities.map((orig) =>
-        searchOneWay(orig, destEntity, searchDate, currency, apiKey).catch((err) => {
+        searchOneWay(orig, destEntity, searchDate, currency, countryCode, apiKey).catch((err) => {
           console.warn(`Search from ${orig.skyId} failed:`, err.message);
           return null;
         })
