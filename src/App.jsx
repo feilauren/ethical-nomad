@@ -1,124 +1,51 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FlightSearch } from "./components/FlightSearch";
-
-// ── Destination data ──────────────────────────────────────────────────────────
-
-const REGIONS = {
-  "Southeast Asia": [
-    { name: "Thailand",    flag: "🇹🇭", tag: "Beaches & temples" },
-    { name: "Vietnam",     flag: "🇻🇳", tag: "Street food & history" },
-    { name: "Indonesia",   flag: "🇮🇩", tag: "Islands & jungle" },
-    { name: "Malaysia",    flag: "🇲🇾", tag: "Modern & affordable" },
-    { name: "Philippines", flag: "🇵🇭", tag: "Islands & diving" },
-    { name: "Singapore",   flag: "🇸🇬", tag: "City-state hub" },
-    { name: "Cambodia",    flag: "🇰🇭", tag: "Ancient ruins" },
-    { name: "Myanmar",     flag: "🇲🇲", tag: "Off the beaten path" },
-    { name: "Laos",        flag: "🇱🇦", tag: "Slow travel" },
-  ],
-  "East & South Asia": [
-    { name: "Japan",        flag: "🇯🇵", tag: "Culture & tech" },
-    { name: "South Korea",  flag: "🇰🇷", tag: "Food & nightlife" },
-    { name: "Taiwan",       flag: "🇹🇼", tag: "Food & mountains" },
-    { name: "India",        flag: "🇮🇳", tag: "Diversity & color" },
-    { name: "Nepal",        flag: "🇳🇵", tag: "Himalayas & trekking" },
-    { name: "Sri Lanka",    flag: "🇱🇰", tag: "Tea & beaches" },
-  ],
-  "Central Asia & Caucasus": [
-    { name: "Georgia",     flag: "🇬🇪", tag: "Wine & mountains" },
-    { name: "Armenia",     flag: "🇦🇲", tag: "Ancient monasteries" },
-    { name: "Azerbaijan",  flag: "🇦🇿", tag: "Oil city meets nature" },
-    { name: "Uzbekistan",  flag: "🇺🇿", tag: "Silk Road cities" },
-    { name: "Kyrgyzstan",  flag: "🇰🇬", tag: "Nomadic landscapes" },
-    { name: "Kazakhstan",  flag: "🇰🇿", tag: "Vast steppe & cities" },
-  ],
-  "Middle East": [
-    { name: "UAE",    flag: "🇦🇪", tag: "Desert & skyscrapers" },
-    { name: "Turkey", flag: "🇹🇷", tag: "East meets West" },
-    { name: "Jordan", flag: "🇯🇴", tag: "Petra & the desert" },
-    { name: "Oman",   flag: "🇴🇲", tag: "Rugged & welcoming" },
-    { name: "Qatar",  flag: "🇶🇦", tag: "Modern Gulf hub" },
-    { name: "Israel", flag: "🇮🇱", tag: "History & beaches" },
-  ],
-  "Europe": [
-    { name: "Portugal",             flag: "🇵🇹", tag: "Surf & pastel de nata" },
-    { name: "Spain",                flag: "🇪🇸", tag: "Sun & siesta" },
-    { name: "Italy",                flag: "🇮🇹", tag: "Art & pasta" },
-    { name: "Greece",               flag: "🇬🇷", tag: "Islands & ruins" },
-    { name: "Croatia",              flag: "🇭🇷", tag: "Adriatic coast" },
-    { name: "Montenegro",           flag: "🇲🇪", tag: "Dramatic scenery" },
-    { name: "Albania",              flag: "🇦🇱", tag: "Undiscovered gem" },
-    { name: "Serbia",               flag: "🇷🇸", tag: "Nightlife & culture" },
-    { name: "Bulgaria",             flag: "🇧🇬", tag: "Mountains & history" },
-    { name: "Romania",              flag: "🇷🇴", tag: "Castles & Carpathians" },
-    { name: "Hungary",              flag: "🇭🇺", tag: "Thermal baths & ruin bars" },
-    { name: "Poland",               flag: "🇵🇱", tag: "History & low cost" },
-    { name: "Czech Republic",       flag: "🇨🇿", tag: "Prague & beer" },
-    { name: "Estonia",              flag: "🇪🇪", tag: "Digital nomad capital" },
-    { name: "Latvia",               flag: "🇱🇻", tag: "Art Nouveau & forests" },
-    { name: "Lithuania",            flag: "🇱🇹", tag: "Baroque old towns" },
-    { name: "Slovenia",             flag: "🇸🇮", tag: "Alps & lakes" },
-    { name: "Malta",                flag: "🇲🇹", tag: "Sun & history" },
-    { name: "Cyprus",               flag: "🇨🇾", tag: "Year-round warmth" },
-    { name: "Iceland",              flag: "🇮🇸", tag: "Northern lights" },
-  ],
-  "Africa": [
-    { name: "Morocco",      flag: "🇲🇦", tag: "Medinas & desert" },
-    { name: "Egypt",        flag: "🇪🇬", tag: "Pyramids & Red Sea" },
-    { name: "Tunisia",      flag: "🇹🇳", tag: "Roman ruins & beaches" },
-    { name: "Kenya",        flag: "🇰🇪", tag: "Safari & Nairobi tech" },
-    { name: "Tanzania",     flag: "🇹🇿", tag: "Kilimanjaro & Zanzibar" },
-    { name: "Rwanda",       flag: "🇷🇼", tag: "Gorillas & greenery" },
-    { name: "South Africa", flag: "🇿🇦", tag: "Cape Town & game parks" },
-    { name: "Mauritius",    flag: "🇲🇺", tag: "Tropical paradise" },
-    { name: "Cape Verde",   flag: "🇨🇻", tag: "Volcanic islands" },
-    { name: "Ethiopia",     flag: "🇪🇹", tag: "Ancient civilization" },
-  ],
-  "Americas": [
-    { name: "Mexico",             flag: "🇲🇽", tag: "Culture & cenotes" },
-    { name: "Colombia",           flag: "🇨🇴", tag: "Coffee & coast" },
-    { name: "Peru",               flag: "🇵🇪", tag: "Inca trails" },
-    { name: "Ecuador",            flag: "🇪🇨", tag: "Galápagos & volcanoes" },
-    { name: "Argentina",          flag: "🇦🇷", tag: "Patagonia & tango" },
-    { name: "Chile",              flag: "🇨🇱", tag: "Desert to glaciers" },
-    { name: "Brazil",             flag: "🇧🇷", tag: "Amazon & carnival" },
-    { name: "Costa Rica",         flag: "🇨🇷", tag: "Pura vida" },
-    { name: "Panama",             flag: "🇵🇦", tag: "Canal & islands" },
-    { name: "Dominican Republic", flag: "🇩🇴", tag: "Caribbean beaches" },
-    { name: "Cuba",               flag: "🇨🇺", tag: "Time-capsule culture" },
-    { name: "Uruguay",            flag: "🇺🇾", tag: "Calm & cultured" },
-  ],
-  "Oceania": [
-    { name: "Australia",  flag: "🇦🇺", tag: "Outback & Great Barrier Reef" },
-    { name: "New Zealand", flag: "🇳🇿", tag: "Lord of the Rings landscapes" },
-  ],
-};
-
-const ALL_REGION_NAMES = ["All", ...Object.keys(REGIONS)];
+import { TravelAnywhere } from "./components/TravelAnywhere";
+import { REGIONS, ALL_REGION_NAMES } from "./utils/regions";
+import { useLists } from "./hooks/useLists";
 
 // ── App ───────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [view, setView]               = useState("browse"); // "browse" | "anywhere"
   const [activeRegion, setActiveRegion] = useState("All");
-  const [selected, setSelected]         = useState(null); // { name, flag, tag }
+  const [selected, setSelected]       = useState(null); // { name, flag, tag }
+
+  const listsApi = useLists();
 
   const visibleCountries =
     activeRegion === "All"
       ? Object.values(REGIONS).flat()
       : REGIONS[activeRegion] ?? [];
 
+  if (view === "anywhere") {
+    return (
+      <TravelAnywhere
+        lists={listsApi.lists}
+        onCreateList={listsApi.createList}
+        onBack={() => setView("browse")}
+      />
+    );
+  }
+
   return (
     <div style={s.root}>
-      <Header />
+      <Header onAnywhere={() => setView("anywhere")} />
 
       {selected ? (
         <DetailView
           country={selected}
           onBack={() => setSelected(null)}
+          listsApi={listsApi}
         />
       ) : (
         <>
           <RegionNav active={activeRegion} onChange={setActiveRegion} />
-          <CountryGrid countries={visibleCountries} onSelect={setSelected} />
+          <CountryGrid
+            countries={visibleCountries}
+            onSelect={setSelected}
+            listsApi={listsApi}
+          />
         </>
       )}
     </div>
@@ -127,7 +54,7 @@ export default function App() {
 
 // ── Header ────────────────────────────────────────────────────────────────────
 
-function Header() {
+function Header({ onAnywhere }) {
   return (
     <header style={s.header}>
       <div style={s.headerInner}>
@@ -135,6 +62,9 @@ function Header() {
           <div style={s.logo}>Ethical Nomad</div>
           <div style={s.tagline}>Find your next base</div>
         </div>
+        <button onClick={onAnywhere} style={s.anywhereBtn}>
+          Travel Anywhere ✈
+        </button>
       </div>
     </header>
   );
@@ -162,23 +92,124 @@ function RegionNav({ active, onChange }) {
 
 // ── Country grid ──────────────────────────────────────────────────────────────
 
-function CountryGrid({ countries, onSelect }) {
+function CountryGrid({ countries, onSelect, listsApi }) {
   return (
     <main style={s.grid}>
       {countries.map((c) => (
-        <button key={c.name} style={s.card} onClick={() => onSelect(c)}>
-          <span style={s.flag}>{c.flag}</span>
-          <span style={s.countryName}>{c.name}</span>
-          <span style={s.countryTag}>{c.tag}</span>
-        </button>
+        <CountryCard
+          key={c.name}
+          country={c}
+          onSelect={onSelect}
+          listsApi={listsApi}
+        />
       ))}
     </main>
   );
 }
 
+// ── Country card with bookmark ────────────────────────────────────────────────
+
+function CountryCard({ country, onSelect, listsApi }) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const inAnyList = listsApi.isInAnyList(country.name);
+  const countryLists = listsApi.getListsForCountry(country.name);
+
+  // Close popover on outside click
+  useEffect(() => {
+    if (!popoverOpen) return;
+    function handleClick(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setPopoverOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [popoverOpen]);
+
+  function handleBookmark(e) {
+    e.stopPropagation();
+
+    if (listsApi.lists.length === 1) {
+      // Single list: toggle immediately
+      const list = listsApi.lists[0];
+      if (list.countries.includes(country.name)) {
+        listsApi.removeCountry(list.id, country.name);
+      } else {
+        listsApi.addCountry(list.id, country.name);
+      }
+    } else {
+      // Multiple lists: show popover
+      setPopoverOpen((v) => !v);
+    }
+  }
+
+  function toggleInList(list) {
+    if (list.countries.includes(country.name)) {
+      listsApi.removeCountry(list.id, country.name);
+    } else {
+      listsApi.addCountry(list.id, country.name);
+    }
+  }
+
+  return (
+    <div ref={wrapRef} style={s.cardWrap}>
+      <button style={s.card} onClick={() => onSelect(country)}>
+        <span style={s.flag}>{country.flag}</span>
+        <span style={s.countryName}>{country.name}</span>
+        <span style={s.countryTag}>{country.tag}</span>
+      </button>
+
+      {/* Bookmark button */}
+      <button
+        onClick={handleBookmark}
+        style={{ ...s.bookmark, ...(inAnyList ? s.bookmarkActive : {}) }}
+        title={inAnyList ? "Remove from list" : "Add to list"}
+      >
+        {inAnyList ? "★" : "☆"}
+      </button>
+
+      {/* Multi-list popover */}
+      {popoverOpen && (
+        <div style={s.popover}>
+          <div style={s.popoverTitle}>Add to list</div>
+          {listsApi.lists.map((list) => {
+            const checked = list.countries.includes(country.name);
+            return (
+              <label key={list.id} style={s.popoverItem}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleInList(list)}
+                  style={s.popoverCheck}
+                />
+                <span style={s.popoverLabel}>{list.name}</span>
+                <span style={s.popoverCount}>{list.countries.length}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Detail view ───────────────────────────────────────────────────────────────
 
-function DetailView({ country, onBack }) {
+function DetailView({ country, onBack, listsApi }) {
+  const inAnyList = listsApi.isInAnyList(country.name);
+
+  function handleQuickAdd() {
+    const list = listsApi.lists[0];
+    if (!list) return;
+    if (list.countries.includes(country.name)) {
+      listsApi.removeCountry(list.id, country.name);
+    } else {
+      listsApi.addCountry(list.id, country.name);
+    }
+  }
+
   return (
     <main style={s.detail}>
       <button onClick={onBack} style={s.backBtn}>
@@ -187,10 +218,17 @@ function DetailView({ country, onBack }) {
 
       <div style={s.detailHeader}>
         <span style={s.detailFlag}>{country.flag}</span>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1 style={s.detailName}>{country.name}</h1>
           <p style={s.detailTag}>{country.tag}</p>
         </div>
+        <button
+          onClick={handleQuickAdd}
+          style={{ ...s.detailBookmark, ...(inAnyList ? s.detailBookmarkActive : {}) }}
+          title={inAnyList ? "Remove from list" : "Save to list"}
+        >
+          {inAnyList ? "★ Saved" : "☆ Save"}
+        </button>
       </div>
 
       <FlightSearch countryName={country.name} defaultCurr="EUR" />
@@ -229,6 +267,17 @@ const s = {
     fontSize: 12,
     color: "#64748b",
     marginTop: 2,
+  },
+  anywhereBtn: {
+    padding: "8px 16px",
+    borderRadius: 8,
+    border: "1px solid #334155",
+    background: "#1e293b",
+    color: "#e2e8f0",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.15s",
   },
 
   // Region nav
@@ -270,7 +319,13 @@ const s = {
     gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
     gap: 12,
   },
+
+  // Card
+  cardWrap: {
+    position: "relative",
+  },
   card: {
+    width: "100%",
     background: "#fff",
     border: "1px solid #e2e8f0",
     borderRadius: 12,
@@ -296,6 +351,73 @@ const s = {
     fontSize: 11,
     color: "#94a3b8",
     lineHeight: 1.3,
+  },
+  bookmark: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 26,
+    height: 26,
+    border: "none",
+    background: "rgba(255,255,255,0.85)",
+    borderRadius: 6,
+    cursor: "pointer",
+    fontSize: 14,
+    lineHeight: 1,
+    color: "#94a3b8",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 0,
+    backdropFilter: "blur(4px)",
+  },
+  bookmarkActive: {
+    color: "#f59e0b",
+  },
+
+  // Multi-list popover
+  popover: {
+    position: "absolute",
+    top: 34,
+    right: 6,
+    background: "#fff",
+    border: "1px solid #e2e8f0",
+    borderRadius: 10,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+    padding: "10px 0",
+    zIndex: 100,
+    minWidth: 170,
+  },
+  popoverTitle: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#94a3b8",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    padding: "0 12px 8px",
+  },
+  popoverItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    padding: "6px 12px",
+    cursor: "pointer",
+    fontSize: 13,
+  },
+  popoverCheck: {
+    cursor: "pointer",
+  },
+  popoverLabel: {
+    flex: 1,
+    color: "#1e293b",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  popoverCount: {
+    fontSize: 11,
+    color: "#94a3b8",
+    flexShrink: 0,
   },
 
   // Detail view
@@ -337,5 +459,21 @@ const s = {
     fontSize: 14,
     color: "#64748b",
     marginTop: 4,
+  },
+  detailBookmark: {
+    padding: "7px 14px",
+    borderRadius: 8,
+    border: "1px solid #e2e8f0",
+    background: "#f8fafc",
+    color: "#64748b",
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+  detailBookmarkActive: {
+    background: "#fef3c7",
+    border: "1px solid #fcd34d",
+    color: "#92400e",
   },
 };
