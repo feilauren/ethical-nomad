@@ -1,11 +1,30 @@
-import { useRef, useEffect } from "react";
-import { FlightSearch } from "./FlightSearch";
+import { useState, useRef, useEffect } from "react";
 import { HR, INFRA } from "../data/countries";
 
-export function CountryModal({ c, onClose, favorites, toggleFav, listsApi }) {
-  const isFav   = favorites.includes(c.name);
+export function CountryModal({ c, onClose, listsApi }) {
   const hrColor = HR[c.hrLevel].color;
   const inList  = listsApi.isInAnyList(c.name);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const handler = (e) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target)) setPopoverOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [popoverOpen]);
+
+  function handleListBtn() {
+    if (listsApi.lists.length === 1) {
+      const list = listsApi.lists[0];
+      if (list.countries.includes(c.name)) listsApi.removeCountry(list.id, c.name);
+      else listsApi.addCountry(list.id, c.name);
+    } else {
+      setPopoverOpen((v) => !v);
+    }
+  }
 
   // Close on Escape
   useEffect(() => {
@@ -67,37 +86,44 @@ export function CountryModal({ c, onClose, favorites, toggleFav, listsApi }) {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
-              <button
-                onClick={() => toggleFav(c.name)}
-                style={{
-                  padding: "6px 12px", borderRadius: 8, border: "1px solid #e2e8f0",
-                  background: isFav ? "#f5f3ff" : "#fff",
-                  color: isFav ? "#6366f1" : "#64748b",
-                  cursor: "pointer", fontSize: 13, fontWeight: isFav ? 700 : 400,
-                }}
-              >
-                {isFav ? "💜 Saved" : "💜 Save"}
-              </button>
-              {listsApi && (
+            <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }} ref={popoverRef}>
+              <div style={{ position: "relative" }}>
                 <button
-                  onClick={() => {
-                    const list = listsApi.lists[0];
-                    if (!list) return;
-                    if (list.countries.includes(c.name)) listsApi.removeCountry(list.id, c.name);
-                    else listsApi.addCountry(list.id, c.name);
-                  }}
+                  onClick={handleListBtn}
                   style={{
-                    padding: "6px 10px", borderRadius: 8, border: "1px solid #e2e8f0",
+                    padding: "6px 12px", borderRadius: 8, border: "1px solid #e2e8f0",
                     background: inList ? "#fef3c7" : "#fff",
                     color: inList ? "#92400e" : "#64748b",
-                    cursor: "pointer", fontSize: 13,
+                    cursor: "pointer", fontSize: 13, fontWeight: inList ? 700 : 400,
                   }}
-                  title={inList ? "Remove from trip list" : "Add to trip list"}
+                  title={inList ? "In a trip list" : "Add to trip list"}
                 >
-                  {inList ? "★" : "☆"}
+                  {inList ? "★ In list" : "☆ Add to list"}
                 </button>
-              )}
+                {popoverOpen && (
+                  <div style={{
+                    position: "absolute", top: 36, right: 0, background: "#fff",
+                    border: "1px solid #e2e8f0", borderRadius: 10,
+                    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                    padding: "10px 0", zIndex: 10, minWidth: 170,
+                  }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.5px", padding: "0 12px 6px" }}>Add to list</div>
+                    {listsApi.lists.map((list) => {
+                      const checked = list.countries.includes(c.name);
+                      return (
+                        <label key={list.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 12px", cursor: "pointer", fontSize: 13 }}>
+                          <input type="checkbox" checked={checked} onChange={() => {
+                            if (checked) listsApi.removeCountry(list.id, c.name);
+                            else listsApi.addCountry(list.id, c.name);
+                          }} />
+                          <span style={{ flex: 1 }}>{list.name}</span>
+                          <span style={{ fontSize: 11, color: "#94a3b8" }}>{list.countries.length}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={onClose}
                 style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer", fontSize: 22, padding: "0 4px", lineHeight: 1 }}
@@ -174,12 +200,6 @@ export function CountryModal({ c, onClose, favorites, toggleFav, listsApi }) {
               </div>
             </div>
           )}
-
-          {/* Flights */}
-          <div>
-            <SectionLabel>Cheapest Flights</SectionLabel>
-            <FlightSearch countryName={c.name} defaultCurr="EUR" />
-          </div>
 
         </div>
       </div>

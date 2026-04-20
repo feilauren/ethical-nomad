@@ -1,36 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { LoginGate } from "./components/LoginGate";
 import { Header } from "./components/Header";
 import { ExploreTab } from "./components/ExploreTab";
 import { FlightsTab } from "./components/FlightsTab";
+import { SchengenTab } from "./components/SchengenTab";
+import { NotesTab } from "./components/NotesTab";
 import { CountryModal } from "./components/CountryModal";
 import { useLists } from "./hooks/useLists";
+import { useSchengen } from "./hooks/useSchengen";
+import { useNotes } from "./hooks/useNotes";
 
-const FAVS_KEY    = "en-favs";
 const SESSION_KEY = "en-session";
 
-function loadFavs() {
-  try { return JSON.parse(localStorage.getItem(FAVS_KEY)) ?? []; } catch { return []; }
-}
-
 export default function App() {
-  const [tab,       setTab]       = useState("explore");
-  const [favorites, setFavorites] = useState(loadFavs);
-  const [session,   setSession]   = useState(null);
-  const [modal,     setModal]     = useState(null); // country object | null
+  const [tab,     setTab]     = useState("explore");
+  const [session, setSession] = useState(null);
+  const [modal,   setModal]   = useState(null); // country object | null
 
-  const listsApi = useLists();
-
-  // Persist favorites
-  useEffect(() => {
-    try { localStorage.setItem(FAVS_KEY, JSON.stringify(favorites)); } catch {}
-  }, [favorites]);
-
-  function toggleFav(name) {
-    setFavorites((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
-    );
-  }
+  const listsApi    = useLists();
+  const schengenApi = useSchengen(session);
+  const notesApi    = useNotes(session);
 
   function handleSignOut() {
     localStorage.removeItem(SESSION_KEY);
@@ -43,15 +32,12 @@ export default function App() {
         <Header
           tab={tab}
           setTab={setTab}
-          favCount={favorites.length}
           session={session}
           onSignOut={handleSignOut}
         />
 
         {tab === "explore" && (
           <ExploreTab
-            favorites={favorites}
-            toggleFav={toggleFav}
             listsApi={listsApi}
             onOpenModal={setModal}
           />
@@ -64,12 +50,18 @@ export default function App() {
           />
         )}
 
+        {tab === "schengen" && (
+          <SchengenTab schengenApi={schengenApi} />
+        )}
+
+        {tab === "notes" && (
+          <NotesTab notesApi={notesApi} lists={listsApi.lists} />
+        )}
+
         {modal && (
           <CountryModal
             c={modal}
             onClose={() => setModal(null)}
-            favorites={favorites}
-            toggleFav={toggleFav}
             listsApi={listsApi}
           />
         )}

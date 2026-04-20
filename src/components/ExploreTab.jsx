@@ -2,12 +2,11 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { countries, HR, INFRA, CONTINENTS, COST_TIERS } from "../data/countries";
 import { Btn } from "./shared";
 
-export function ExploreTab({ favorites, toggleFav, listsApi, onOpenModal }) {
+export function ExploreTab({ listsApi, onOpenModal }) {
   const [continent, setContinent] = useState("All");
   const [costTier,  setCostTier]  = useState("All");
   const [safeOnly,  setSafeOnly]  = useState(false);
   const [hrOnly,    setHrOnly]    = useState(false);
-  const [favOnly,   setFavOnly]   = useState(false);
 
   const filtered = useMemo(() => {
     const tier = COST_TIERS.find((t) => t.label === costTier) ?? COST_TIERS[0];
@@ -16,10 +15,9 @@ export function ExploreTab({ favorites, toggleFav, listsApi, onOpenModal }) {
       if (c.weekCost < tier.min || c.weekCost > tier.max) return false;
       if (safeOnly && c.safety !== "good") return false;
       if (hrOnly && c.hrLevel !== "clear") return false;
-      if (favOnly && !favorites.includes(c.name)) return false;
       return true;
     });
-  }, [continent, costTier, safeOnly, hrOnly, favOnly, favorites]);
+  }, [continent, costTier, safeOnly, hrOnly]);
 
   return (
     <div style={s.root}>
@@ -48,18 +46,15 @@ export function ExploreTab({ favorites, toggleFav, listsApi, onOpenModal }) {
           <Btn active={hrOnly} onClick={() => setHrOnly((v) => !v)} small col="#16a34a">
             HR clear only
           </Btn>
-          <Btn active={favOnly} onClick={() => setFavOnly((v) => !v)} small col="#6366f1">
-            💜 Saved only
-          </Btn>
         </FilterGroup>
       </div>
 
       {/* Count */}
       <div style={s.countRow}>
         <span style={s.count}>{filtered.length} destination{filtered.length !== 1 ? "s" : ""}</span>
-        {(continent !== "All" || costTier !== "All" || safeOnly || hrOnly || favOnly) && (
+        {(continent !== "All" || costTier !== "All" || safeOnly || hrOnly) && (
           <button
-            onClick={() => { setContinent("All"); setCostTier("All"); setSafeOnly(false); setHrOnly(false); setFavOnly(false); }}
+            onClick={() => { setContinent("All"); setCostTier("All"); setSafeOnly(false); setHrOnly(false); }}
             style={s.clearBtn}
           >
             Clear filters
@@ -73,8 +68,6 @@ export function ExploreTab({ favorites, toggleFav, listsApi, onOpenModal }) {
           <CountryCard
             key={c.name}
             country={c}
-            isFav={favorites.includes(c.name)}
-            onToggleFav={() => toggleFav(c.name)}
             listsApi={listsApi}
             onOpen={() => onOpenModal(c)}
           />
@@ -90,7 +83,7 @@ export function ExploreTab({ favorites, toggleFav, listsApi, onOpenModal }) {
 
 // ── Country card ──────────────────────────────────────────────────────────────
 
-function CountryCard({ country: c, isFav, onToggleFav, listsApi, onOpen }) {
+function CountryCard({ country: c, listsApi, onOpen }) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const wrapRef = useRef(null);
   const inList = listsApi.isInAnyList(c.name);
@@ -121,13 +114,6 @@ function CountryCard({ country: c, isFav, onToggleFav, listsApi, onOpen }) {
         <div style={s.cardTop}>
           <span style={s.flag}>{c.flag}</span>
           <div style={s.cardBtns}>
-            <button
-              onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
-              style={{ ...s.iconBtn, color: isFav ? "#6366f1" : "#cbd5e1" }}
-              title={isFav ? "Unsave" : "Save"}
-            >
-              💜
-            </button>
             <button
               onClick={handleListBtn}
               style={{ ...s.iconBtn, color: inList ? "#f59e0b" : "#cbd5e1" }}

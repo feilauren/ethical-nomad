@@ -1,4 +1,11 @@
-export function Header({ tab, setTab, favCount, session, onSignOut }) {
+const TABS = [
+  ["explore",  "🌍 Explore"],
+  ["flights",  "✈️ Flights"],
+  ["schengen", "🗓 Schengen"],
+  ["notes",    "📝 Notes"],
+];
+
+export function Header({ tab, setTab, session, onSignOut }) {
   return (
     <div style={{
       background: "#fff",
@@ -18,12 +25,12 @@ export function Header({ tab, setTab, favCount, session, onSignOut }) {
       </div>
 
       <div style={{ display: "flex", gap: 0 }}>
-        {[["explore", "🌍 Explore"], ["flights", "✈️ Flights"]].map(([id, lbl]) => (
+        {TABS.map(([id, lbl]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
             style={{
-              padding: "0 20px",
+              padding: "0 16px",
               height: 52,
               border: "none",
               background: "none",
@@ -32,6 +39,7 @@ export function Header({ tab, setTab, favCount, session, onSignOut }) {
               fontWeight: tab === id ? 700 : 400,
               color: tab === id ? "#4f46e5" : "#64748b",
               borderBottom: tab === id ? "2px solid #4f46e5" : "2px solid transparent",
+              whiteSpace: "nowrap",
             }}
           >
             {lbl}
@@ -40,9 +48,9 @@ export function Header({ tab, setTab, favCount, session, onSignOut }) {
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 12, color: favCount > 0 ? "#6366f1" : "#94a3b8", fontWeight: 600 }}>
-          💜 {favCount} saved
-        </span>
+        {session && (
+          <span style={{ fontSize: 12, color: "#94a3b8" }}>{session.email}</span>
+        )}
         {session && (
           <button
             onClick={onSignOut}

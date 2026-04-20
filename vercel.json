@@ -3,6 +3,18 @@
     "api/flights.js": {
       "memory": 128,
       "maxDuration": 15
+    },
+    "api/schengen/trips.js": {
+      "memory": 128,
+      "maxDuration": 10
+    },
+    "api/notes/index.js": {
+      "memory": 128,
+      "maxDuration": 10
+    },
+    "api/db/setup.js": {
+      "memory": 128,
+      "maxDuration": 15
     }
   },
   "rewrites": [
