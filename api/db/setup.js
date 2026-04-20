@@ -1,19 +1,9 @@
 import { neon } from "@neondatabase/serverless";
 
-const SETUP_SECRET = process.env.SETUP_SECRET;
-
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", process.env.ALLOWED_ORIGIN || "*");
 
   if (req.method !== "GET") return res.status(405).json({ error: "GET only" });
-
-  // Simple protection — require Bearer token if SETUP_SECRET is set
-  if (SETUP_SECRET) {
-    const auth = req.headers.authorization ?? "";
-    if (auth !== `Bearer ${SETUP_SECRET}`) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-  }
 
   try {
     const sql = neon(process.env.DATABASE_URL);
